@@ -12,50 +12,60 @@ function saveConversations(convs) {
   localStorage.setItem('conversations', JSON.stringify(convs));
 }
 
-function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete }) {
+function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete, mobileOpen, onClose }) {
   return React.createElement(
-    'aside',
-    { className: 'w-60 glass bg-gray-800/40 p-4 flex flex-col rounded-r-lg border-r border-gray-700/50' },
+    React.Fragment,
+    null,
+    React.createElement('div', {
+      className: `lg:hidden fixed inset-0 bg-black/50 ${mobileOpen ? 'block' : 'hidden'} z-20`,
+      onClick: onClose
+    }),
     React.createElement(
-      'div',
-      { className: 'flex items-center mb-4' },
-      React.createElement('span', { className: 'flex-1 font-semibold' }, 'Conversations'),
+      'aside',
+      {
+        className: `w-60 glass bg-gray-800/40 p-4 flex flex-col rounded-r-lg border-r border-gray-700/50 z-30 fixed top-0 left-0 h-full transform transition-transform lg:static ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`
+      },
       React.createElement(
-        'button',
-        { className: 'bg-green-600 px-2 py-1 rounded text-sm', onClick: onNew },
-        '+'
-      )
-    ),
-    React.createElement(
-      'div',
-      { className: 'flex-1 overflow-y-auto space-y-2' },
-      conversations.map(c =>
+        'div',
+        { className: 'flex items-center mb-4' },
+        React.createElement('span', { className: 'flex-1 font-semibold' }, 'Conversations'),
         React.createElement(
-          'div',
-          { key: c.id, className: 'relative group' },
+          'button',
+          { className: 'bg-green-600 px-2 py-1 rounded text-sm', onClick: onNew },
+          '+'
+        )
+      ),
+      React.createElement(
+        'div',
+        { className: 'flex-1 overflow-y-auto space-y-2' },
+        conversations.map(c =>
           React.createElement(
-            'button',
-            {
-              onClick: () => onSelect(c.id),
-              className: `block w-full text-left px-3 py-2 rounded glass ${currentId === c.id ? 'bg-gray-700/60 text-white' : 'bg-gray-700/40 text-gray-300 hover:bg-gray-600/50'}`
-            },
-            c.title
-          ),
-          React.createElement(
-            'button',
-            {
-              className: 'absolute right-8 top-1 text-xs text-gray-400 hidden group-hover:inline',
-              onClick: () => onRename(c.id)
-            },
-            '✎'
-          ),
-          React.createElement(
-            'button',
-            {
-              className: 'absolute right-2 top-1 text-xs text-gray-400 hidden group-hover:inline',
-              onClick: () => onDelete(c.id)
-            },
-            '×'
+            'div',
+            { key: c.id, className: 'relative group' },
+            React.createElement(
+              'button',
+              {
+                onClick: () => onSelect(c.id),
+                className: `block w-full text-left px-3 py-2 rounded glass ${currentId === c.id ? 'bg-gray-700/60 text-white' : 'bg-gray-700/40 text-gray-300 hover:bg-gray-600/50'}`
+              },
+              c.title
+            ),
+            React.createElement(
+              'button',
+              {
+                className: 'absolute right-8 top-1 text-xs text-gray-400 hidden group-hover:inline',
+                onClick: () => onRename(c.id)
+              },
+              '✎'
+            ),
+            React.createElement(
+              'button',
+              {
+                className: 'absolute right-2 top-1 text-xs text-gray-400 hidden group-hover:inline',
+                onClick: () => onDelete(c.id)
+              },
+              '×'
+            )
           )
         )
       )
@@ -122,7 +132,7 @@ function MessageInput({ onSend }) {
   );
 }
 
-function ChatArea({ conversation, onAddMessage, onClear }) {
+function ChatArea({ conversation, onAddMessage, onClear, onMenu }) {
   const sendQuestion = async question => {
     onAddMessage(conversation.id, 'user', question);
     try {
@@ -144,7 +154,16 @@ function ChatArea({ conversation, onAddMessage, onClear }) {
     React.createElement(
       'header',
       { className: 'p-4 glass bg-gray-800/40 border-b border-gray-700/50 font-semibold flex justify-between items-center' },
-      conversation.title,
+      React.createElement(
+        'div',
+        { className: 'flex items-center' },
+        React.createElement(
+          'button',
+          { className: 'mr-2 lg:hidden text-gray-400 hover:text-white', onClick: onMenu },
+          '☰'
+        ),
+        conversation.title
+      ),
       React.createElement(
         'button',
         { className: 'text-xs text-gray-400 hover:text-white', onClick: () => onClear(conversation.id) },
@@ -159,6 +178,7 @@ function ChatArea({ conversation, onAddMessage, onClear }) {
 function App() {
   const [conversations, setConversationsState] = useState([]);
   const [currentId, setCurrentId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const convs = loadConversations();
@@ -218,11 +238,16 @@ function App() {
 
   const current = conversations.find(c => c.id === currentId);
 
+  const openSidebar = () => setSidebarOpen(true);
+  const closeSidebar = () => setSidebarOpen(false);
+
   return React.createElement(
     'div',
-    { className: 'flex h-full gap-4 p-4' },
-    React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation, onRename: renameConversation, onDelete: deleteConversation }),
-    current ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages }) : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
+    { className: 'relative flex h-full p-4 lg:gap-4' },
+    React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation, onRename: renameConversation, onDelete: deleteConversation, mobileOpen: sidebarOpen, onClose: closeSidebar }),
+    current
+      ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages, onMenu: openSidebar })
+      : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
   );
 }
 
