@@ -15,7 +15,7 @@ function saveConversations(convs) {
 function Sidebar({ conversations, currentId, onSelect, onNew }) {
   return React.createElement(
     'aside',
-    { className: 'w-60 bg-gray-800 p-4 flex flex-col' },
+    { className: 'w-60 glass bg-gray-800/40 p-4 flex flex-col rounded-r-lg border-r border-gray-700/50' },
     React.createElement(
       'div',
       { className: 'flex items-center mb-4' },
@@ -35,7 +35,7 @@ function Sidebar({ conversations, currentId, onSelect, onNew }) {
           {
             key: c.id,
             onClick: () => onSelect(c.id),
-            className: `block w-full text-left px-3 py-2 rounded ${currentId === c.id ? 'bg-gray-700 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'}`
+            className: `block w-full text-left px-3 py-2 rounded glass ${currentId === c.id ? 'bg-gray-700/60 text-white' : 'bg-gray-700/40 text-gray-300 hover:bg-gray-600/50'}`
           },
           c.title
         )
@@ -59,7 +59,7 @@ function MessageList({ messages }) {
         { key: i, className: `flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}` },
         React.createElement(
           'div',
-          { className: `max-w-lg px-4 py-2 rounded-lg ${m.sender === 'user' ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'}` },
+          { className: `max-w-lg px-4 py-2 rounded-lg glass ${m.sender === 'user' ? 'bg-green-600/60 text-white' : 'bg-gray-700/60 text-white'}` },
           m.text
         )
       )
@@ -87,9 +87,9 @@ function MessageInput({ onSend }) {
 
   return React.createElement(
     'div',
-    { className: 'p-4 border-t border-gray-700 flex' },
+    { className: 'p-4 glass bg-gray-800/40 border-t border-gray-700/50 flex' },
     React.createElement('textarea', {
-      className: 'flex-1 resize-none bg-gray-800 p-2 rounded-l-md focus:outline-none text-gray-200',
+      className: 'flex-1 resize-none bg-transparent p-2 rounded-l-md focus:outline-none text-gray-200 placeholder-gray-400',
       value,
       placeholder: 'Ask something...',
       onChange: e => setValue(e.target.value),
@@ -97,7 +97,7 @@ function MessageInput({ onSend }) {
     }),
     React.createElement(
       'button',
-      { className: 'bg-green-600 px-4 text-white rounded-r-md hover:bg-green-500', onClick: send },
+      { className: 'bg-green-600/70 px-4 text-white rounded-r-md hover:bg-green-500/80', onClick: send },
       'Send'
     )
   );
@@ -124,7 +124,7 @@ function ChatArea({ conversation, onAddMessage }) {
     { className: 'flex-1 flex flex-col' },
     React.createElement(
       'header',
-      { className: 'p-4 border-b border-gray-700 font-semibold' },
+      { className: 'p-4 glass bg-gray-800/40 border-b border-gray-700/50 font-semibold' },
       conversation.title
     ),
     React.createElement(MessageList, { messages: conversation.messages }),
@@ -169,7 +169,7 @@ function App() {
 
   return React.createElement(
     'div',
-    { className: 'flex h-full' },
+    { className: 'flex h-full gap-4 p-4' },
     React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation }),
     current ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage }) : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
   );
