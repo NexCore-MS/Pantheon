@@ -73,7 +73,7 @@ function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete
   );
 }
 
-function MessageList({ messages }) {
+function MessageList({ messages, theme }) {
   const endRef = useRef(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,17 +82,38 @@ function MessageList({ messages }) {
   return React.createElement(
     'div',
     { className: 'flex-1 overflow-y-auto p-4 space-y-4' },
-    messages.map((m, i) =>
-      React.createElement(
+    messages.map((m, i) => {
+      const bubble = m.sender === 'user'
+        ? theme === 'dark'
+          ? 'bg-green-600/60 text-white'
+          : 'bg-green-500/20 text-gray-800'
+        : theme === 'dark'
+          ? 'bg-gray-700/60 text-white'
+          : 'bg-white text-gray-800';
+      return React.createElement(
         'div',
         { key: i, className: `flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}` },
         React.createElement(
           'div',
-          { className: `max-w-lg px-4 py-2 rounded-lg glass ${m.sender === 'user' ? 'bg-green-600/60 text-white' : 'bg-gray-700/60 text-white'}` },
-          m.text
+          { className: `max-w-lg px-4 py-2 rounded-lg glass relative group ${bubble}` },
+          m.text,
+          m.time &&
+            React.createElement(
+              'div',
+              { className: `text-[10px] opacity-70 mt-1 ${m.sender === 'user' ? 'text-right' : 'text-left'}` },
+              m.time
+            ),
+          React.createElement(
+            'button',
+            {
+              className: 'absolute top-1 right-1 text-xs text-gray-300 hover:text-white hidden group-hover:inline',
+              onClick: () => navigator.clipboard.writeText(m.text)
+            },
+            'Copy'
+          )
         )
-      )
-    ),
+      );
+    }),
     React.createElement('div', { ref: endRef })
   );
 }
@@ -132,7 +153,7 @@ function MessageInput({ onSend }) {
   );
 }
 
-function ChatArea({ conversation, onAddMessage, onClear, onMenu }) {
+function ChatArea({ conversation, onAddMessage, onClear, onMenu, onExport, theme, onToggleTheme }) {
   const sendQuestion = async question => {
     onAddMessage(conversation.id, 'user', question);
     try {
@@ -156,13 +177,23 @@ function ChatArea({ conversation, onAddMessage, onClear, onMenu }) {
       { className: 'p-4 glass bg-gray-800/40 border-b border-gray-700/50 font-semibold flex justify-between items-center' },
       React.createElement(
         'div',
-        { className: 'flex items-center' },
+        { className: 'flex items-center space-x-2' },
         React.createElement(
           'button',
           { className: 'mr-2 lg:hidden text-gray-400 hover:text-white', onClick: onMenu },
           '☰'
         ),
-        conversation.title
+        conversation.title,
+        React.createElement(
+          'button',
+          { className: 'text-xs text-gray-400 hover:text-white', onClick: onToggleTheme },
+          theme === 'dark' ? 'Light' : 'Dark'
+        ),
+        React.createElement(
+          'button',
+          { className: 'text-xs text-gray-400 hover:text-white', onClick: onExport },
+          'Export'
+        )
       ),
       React.createElement(
         'button',
@@ -170,7 +201,7 @@ function ChatArea({ conversation, onAddMessage, onClear, onMenu }) {
         'Clear'
       )
     ),
-    React.createElement(MessageList, { messages: conversation.messages }),
+    React.createElement(MessageList, { messages: conversation.messages, theme }),
     React.createElement(MessageInput, { onSend: sendQuestion })
   );
 }
@@ -179,6 +210,12 @@ function App() {
   const [conversations, setConversationsState] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.body.classList.toggle('light', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const convs = loadConversations();
@@ -228,10 +265,24 @@ function App() {
     );
   };
 
+  const exportConversation = conv => {
+    const data = JSON.stringify(conv, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${conv.title}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+
   const addMessage = (id, sender, text) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setConversationsState(convs =>
       convs.map(c =>
-        c.id === id ? { ...c, messages: [...c.messages, { sender, text }] } : c
+        c.id === id ? { ...c, messages: [...c.messages, { sender, text, time }] } : c
       )
     );
   };
@@ -246,7 +297,7 @@ function App() {
     { className: 'relative flex h-full p-4 lg:gap-4' },
     React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation, onRename: renameConversation, onDelete: deleteConversation, mobileOpen: sidebarOpen, onClose: closeSidebar }),
     current
-      ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages, onMenu: openSidebar })
+      ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages, onMenu: openSidebar, onExport: () => exportConversation(current), theme, onToggleTheme: toggleTheme })
       : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
   );
 }
