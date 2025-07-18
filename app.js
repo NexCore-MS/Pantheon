@@ -12,7 +12,7 @@ function saveConversations(convs) {
   localStorage.setItem('conversations', JSON.stringify(convs));
 }
 
-function Sidebar({ conversations, currentId, onSelect, onNew }) {
+function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete }) {
   return React.createElement(
     'aside',
     { className: 'w-60 glass bg-gray-800/40 p-4 flex flex-col rounded-r-lg border-r border-gray-700/50' },
@@ -31,13 +31,32 @@ function Sidebar({ conversations, currentId, onSelect, onNew }) {
       { className: 'flex-1 overflow-y-auto space-y-2' },
       conversations.map(c =>
         React.createElement(
-          'button',
-          {
-            key: c.id,
-            onClick: () => onSelect(c.id),
-            className: `block w-full text-left px-3 py-2 rounded glass ${currentId === c.id ? 'bg-gray-700/60 text-white' : 'bg-gray-700/40 text-gray-300 hover:bg-gray-600/50'}`
-          },
-          c.title
+          'div',
+          { key: c.id, className: 'relative group' },
+          React.createElement(
+            'button',
+            {
+              onClick: () => onSelect(c.id),
+              className: `block w-full text-left px-3 py-2 rounded glass ${currentId === c.id ? 'bg-gray-700/60 text-white' : 'bg-gray-700/40 text-gray-300 hover:bg-gray-600/50'}`
+            },
+            c.title
+          ),
+          React.createElement(
+            'button',
+            {
+              className: 'absolute right-8 top-1 text-xs text-gray-400 hidden group-hover:inline',
+              onClick: () => onRename(c.id)
+            },
+            '✎'
+          ),
+          React.createElement(
+            'button',
+            {
+              className: 'absolute right-2 top-1 text-xs text-gray-400 hidden group-hover:inline',
+              onClick: () => onDelete(c.id)
+            },
+            '×'
+          )
         )
       )
     )
@@ -103,7 +122,7 @@ function MessageInput({ onSend }) {
   );
 }
 
-function ChatArea({ conversation, onAddMessage }) {
+function ChatArea({ conversation, onAddMessage, onClear }) {
   const sendQuestion = async question => {
     onAddMessage(conversation.id, 'user', question);
     try {
@@ -124,8 +143,13 @@ function ChatArea({ conversation, onAddMessage }) {
     { className: 'flex-1 flex flex-col' },
     React.createElement(
       'header',
-      { className: 'p-4 glass bg-gray-800/40 border-b border-gray-700/50 font-semibold' },
-      conversation.title
+      { className: 'p-4 glass bg-gray-800/40 border-b border-gray-700/50 font-semibold flex justify-between items-center' },
+      conversation.title,
+      React.createElement(
+        'button',
+        { className: 'text-xs text-gray-400 hover:text-white', onClick: () => onClear(conversation.id) },
+        'Clear'
+      )
     ),
     React.createElement(MessageList, { messages: conversation.messages }),
     React.createElement(MessageInput, { onSend: sendQuestion })
@@ -157,6 +181,33 @@ function App() {
 
   const selectConversation = id => setCurrentId(id);
 
+  const renameConversation = id => {
+    const conv = conversations.find(c => c.id === id);
+    if (!conv) return;
+    const title = prompt('Rename conversation', conv.title);
+    if (title) {
+      setConversationsState(convs =>
+        convs.map(c => (c.id === id ? { ...c, title } : c))
+      );
+    }
+  };
+
+  const deleteConversation = id => {
+    if (!confirm('Delete this conversation?')) return;
+    setConversationsState(convs => {
+      const filtered = convs.filter(c => c.id !== id);
+      if (currentId === id) setCurrentId(filtered[0]?.id || null);
+      return filtered;
+    });
+  };
+
+  const clearMessages = id => {
+    if (!confirm('Clear messages?')) return;
+    setConversationsState(convs =>
+      convs.map(c => (c.id === id ? { ...c, messages: [] } : c))
+    );
+  };
+
   const addMessage = (id, sender, text) => {
     setConversationsState(convs =>
       convs.map(c =>
@@ -170,8 +221,8 @@ function App() {
   return React.createElement(
     'div',
     { className: 'flex h-full gap-4 p-4' },
-    React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation }),
-    current ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage }) : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
+    React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation, onRename: renameConversation, onDelete: deleteConversation }),
+    current ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages }) : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
   );
 }
 
