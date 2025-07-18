@@ -4,7 +4,7 @@ const { motion, AnimatePresence } = window['framer-motion'];
 function MemoryPanel() {
   const items = [
     'Joseph: Creator',
-    'Model: Qwen 32B'
+    'Model: Qwen 32B',
     'Flowise Ready',
     'Pantheon Universe'
   ];
