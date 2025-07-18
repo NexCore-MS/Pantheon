@@ -98,7 +98,7 @@ function MessageInput({ onSend }) {
   };
 
   const handleKey = e => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send();
     }
@@ -112,7 +112,7 @@ function MessageInput({ onSend }) {
       value,
       placeholder: 'Ask something...',
       onChange: e => setValue(e.target.value),
-      onKeyPress: handleKey
+      onKeyDown: handleKey
     }),
     React.createElement(
       'button',
