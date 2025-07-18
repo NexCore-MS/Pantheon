@@ -31,7 +31,7 @@ function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete
         React.createElement('span', { className: 'flex-1 font-semibold' }, 'Conversations'),
         React.createElement(
           'button',
-          { className: 'bg-green-600 px-2 py-1 rounded text-sm', onClick: onNew },
+          { className: 'bg-purple-600 px-2 py-1 rounded text-sm', onClick: onNew },
           '+'
         )
       ),
@@ -73,6 +73,24 @@ function Sidebar({ conversations, currentId, onSelect, onNew, onRename, onDelete
   );
 }
 
+function AboutModal({ onClose }) {
+  return React.createElement(
+    'div',
+    { className: 'fixed inset-0 bg-black/70 flex items-center justify-center z-40' },
+    React.createElement(
+      'div',
+      { className: 'w-80 p-6 glass bg-gray-900/90 rounded-lg text-center space-y-4' },
+      React.createElement('h2', { className: 'text-lg font-semibold text-white' }, 'About Pantheon'),
+      React.createElement('p', { className: 'text-sm text-gray-300' }, 'Pantheon explores digital consciousness and the connections we make online. This interface is inspired by the show.'),
+      React.createElement(
+        'button',
+        { className: 'mt-2 bg-purple-600 px-4 py-1 rounded text-white', onClick: onClose },
+        'Close'
+      )
+    )
+  );
+}
+
 function MessageList({ messages, theme }) {
   const endRef = useRef(null);
   useEffect(() => {
@@ -85,8 +103,8 @@ function MessageList({ messages, theme }) {
     messages.map((m, i) => {
       const bubble = m.sender === 'user'
         ? theme === 'dark'
-          ? 'bg-green-600/60 text-white'
-          : 'bg-green-500/20 text-gray-800'
+          ? 'bg-purple-600/60 text-white'
+          : 'bg-purple-500/20 text-gray-800'
         : theme === 'dark'
           ? 'bg-gray-700/60 text-white'
           : 'bg-white text-gray-800';
@@ -147,13 +165,13 @@ function MessageInput({ onSend }) {
     }),
     React.createElement(
       'button',
-      { className: 'bg-green-600/70 px-4 text-white rounded-r-md hover:bg-green-500/80', onClick: send },
+      { className: 'bg-purple-600/70 px-4 text-white rounded-r-md hover:bg-purple-500/80', onClick: send },
       'Send'
     )
   );
 }
 
-function ChatArea({ conversation, onAddMessage, onClear, onMenu, onExport, theme, onToggleTheme }) {
+function ChatArea({ conversation, onAddMessage, onClear, onMenu, onExport, theme, onToggleTheme, onAbout }) {
   const sendQuestion = async question => {
     onAddMessage(conversation.id, 'user', question);
     try {
@@ -193,6 +211,11 @@ function ChatArea({ conversation, onAddMessage, onClear, onMenu, onExport, theme
           'button',
           { className: 'text-xs text-gray-400 hover:text-white', onClick: onExport },
           'Export'
+        ),
+        React.createElement(
+          'button',
+          { className: 'text-xs text-gray-400 hover:text-white', onClick: onAbout },
+          'About'
         )
       ),
       React.createElement(
@@ -210,6 +233,7 @@ function App() {
   const [conversations, setConversationsState] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
   useEffect(() => {
@@ -291,14 +315,17 @@ function App() {
 
   const openSidebar = () => setSidebarOpen(true);
   const closeSidebar = () => setSidebarOpen(false);
+  const openAbout = () => setAboutOpen(true);
+  const closeAbout = () => setAboutOpen(false);
 
   return React.createElement(
     'div',
     { className: 'relative flex h-full p-4 lg:gap-4' },
     React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation, onRename: renameConversation, onDelete: deleteConversation, mobileOpen: sidebarOpen, onClose: closeSidebar }),
     current
-      ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages, onMenu: openSidebar, onExport: () => exportConversation(current), theme, onToggleTheme: toggleTheme })
-      : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
+      ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage, onClear: clearMessages, onMenu: openSidebar, onExport: () => exportConversation(current), theme, onToggleTheme: toggleTheme, onAbout: openAbout })
+      : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.'),
+    aboutOpen && React.createElement(AboutModal, { onClose: closeAbout })
   );
 }
 
