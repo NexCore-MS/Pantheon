@@ -147,15 +147,22 @@ function App() {
   }, [conversations]);
 
   const createConversation = () => {
-    const newConv = { id: Date.now().toString(), title: `Chat ${conversations.length + 1}`, messages: [] };
-    setConversationsState([newConv, ...conversations]);
-    setCurrentId(newConv.id);
+    const newId = Date.now().toString();
+    setConversationsState(convs => {
+      const newConv = { id: newId, title: `Chat ${convs.length + 1}`, messages: [] };
+      return [newConv, ...convs];
+    });
+    setCurrentId(newId);
   };
 
   const selectConversation = id => setCurrentId(id);
 
   const addMessage = (id, sender, text) => {
-    setConversationsState(conversations.map(c => c.id === id ? { ...c, messages: [...c.messages, { sender, text }] } : c));
+    setConversationsState(convs =>
+      convs.map(c =>
+        c.id === id ? { ...c, messages: [...c.messages, { sender, text }] } : c
+      )
+    );
   };
 
   const current = conversations.find(c => c.id === currentId);
