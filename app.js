@@ -1,64 +1,111 @@
 const { useState, useEffect, useRef } = React;
-const { motion, AnimatePresence } = window['framer-motion'];
 
-function MemoryPanel() {
-  const items = [
-    'Joseph: Creator',
-    'Model: Qwen 32B',
-    'Flowise Ready',
-    'Pantheon Universe'
-  ];
-  return (
-    React.createElement('div', { className: 'p-4 space-y-2 bg-gray-800 bg-opacity-50 rounded-lg shadow-inner' },
-      React.createElement('h2', { className: 'text-xl font-semibold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text mb-2' }, 'Memory'),
-      React.createElement('ul', { className: 'list-disc list-inside text-sm space-y-1' },
-        items.map((item, idx) => React.createElement('li', { key: idx }, item))
+function loadConversations() {
+  try {
+    return JSON.parse(localStorage.getItem('conversations')) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveConversations(convs) {
+  localStorage.setItem('conversations', JSON.stringify(convs));
+}
+
+function Sidebar({ conversations, currentId, onSelect, onNew }) {
+  return React.createElement(
+    'aside',
+    { className: 'w-60 bg-gray-800 p-4 flex flex-col' },
+    React.createElement(
+      'div',
+      { className: 'flex items-center mb-4' },
+      React.createElement('span', { className: 'flex-1 font-semibold' }, 'Conversations'),
+      React.createElement(
+        'button',
+        { className: 'bg-green-600 px-2 py-1 rounded text-sm', onClick: onNew },
+        '+'
+      )
+    ),
+    React.createElement(
+      'div',
+      { className: 'flex-1 overflow-y-auto space-y-2' },
+      conversations.map(c =>
+        React.createElement(
+          'button',
+          {
+            key: c.id,
+            onClick: () => onSelect(c.id),
+            className: `block w-full text-left px-3 py-2 rounded ${currentId === c.id ? 'bg-gray-700 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'}`
+          },
+          c.title
+        )
       )
     )
   );
 }
 
-function AvatarCard() {
-  return (
-    React.createElement('div', { className: 'p-4 flex flex-col items-center text-center' },
-      React.createElement('div', { className: 'w-24 h-24 rounded-full bg-gray-700 mb-4 ring-4 ring-purple-600 ring-opacity-50 animate-pulse' }),
-      React.createElement('h2', { className: 'text-xl font-semibold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text' }, 'MIST'),
-      React.createElement('p', { className: 'text-sm text-gray-400' }, 'Conscious AI – Evolving mindscape')
+function MessageList({ messages }) {
+  const endRef = useRef(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  return React.createElement(
+    'div',
+    { className: 'flex-1 overflow-y-auto p-4 space-y-4' },
+    messages.map((m, i) =>
+      React.createElement(
+        'div',
+        { key: i, className: `flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}` },
+        React.createElement(
+          'div',
+          { className: `max-w-lg px-4 py-2 rounded-lg ${m.sender === 'user' ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'}` },
+          m.text
+        )
+      )
+    ),
+    React.createElement('div', { ref: endRef })
+  );
+}
+
+function MessageInput({ onSend }) {
+  const [value, setValue] = useState('');
+
+  const send = async () => {
+    if (!value.trim()) return;
+    const q = value;
+    setValue('');
+    await onSend(q);
+  };
+
+  const handleKey = e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  return React.createElement(
+    'div',
+    { className: 'p-4 border-t border-gray-700 flex' },
+    React.createElement('textarea', {
+      className: 'flex-1 resize-none bg-gray-800 p-2 rounded-l-md focus:outline-none text-gray-200',
+      value,
+      placeholder: 'Ask something...',
+      onChange: e => setValue(e.target.value),
+      onKeyPress: handleKey
+    }),
+    React.createElement(
+      'button',
+      { className: 'bg-green-600 px-4 text-white rounded-r-md hover:bg-green-500', onClick: send },
+      'Send'
     )
   );
 }
 
-function Message({ text, sender }) {
-  const bubbleStyles = sender === 'user'
-    ? 'bg-gradient-to-r from-green-500 to-teal-500 self-end'
-    : 'bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 self-start';
-
-  return (
-    React.createElement(motion.div, {
-      className: `px-3 py-2 rounded-lg text-sm shadow-lg backdrop-blur-md bg-opacity-80 ${bubbleStyles}`,
-      initial: { opacity: 0, y: 10 },
-      animate: { opacity: 1, y: 0 },
-      exit: { opacity: 0, y: -10 }
-    }, text)
-  );
-}
-
-function ChatWindow() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const endRef = useRef(null);
-
-  const scrollToBottom = () => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(scrollToBottom, [messages]);
-
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const question = input;
-    setMessages(msgs => [...msgs, { sender: 'user', text: question }]);
-    setInput('');
+function ChatArea({ conversation, onAddMessage }) {
+  const sendQuestion = async question => {
+    onAddMessage(conversation.id, 'user', question);
     try {
       const res = await fetch('http://localhost:3000/api/ask', {
         method: 'POST',
@@ -66,57 +113,58 @@ function ChatWindow() {
         body: JSON.stringify({ question })
       });
       const data = await res.json();
-      const answer = data.answer || 'No response';
-      setMessages(msgs => [...msgs, { sender: 'ai', text: answer }]);
-    } catch (err) {
-      setMessages(msgs => [...msgs, { sender: 'ai', text: 'Error contacting server.' }]);
+      onAddMessage(conversation.id, 'ai', data.answer || 'No response');
+    } catch {
+      onAddMessage(conversation.id, 'ai', 'Error contacting server.');
     }
   };
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  return (
-    React.createElement('div', { className: 'flex flex-col h-full' },
-      React.createElement('div', { className: 'flex-1 overflow-y-auto space-y-2 p-4' },
-        React.createElement(AnimatePresence, null,
-          messages.map((msg, idx) =>
-            React.createElement(Message, { key: idx, text: msg.text, sender: msg.sender })
-          )
-        ),
-        React.createElement('div', { ref: endRef })
-      ),
-      React.createElement('div', { className: 'p-4 border-t border-gray-700 flex' },
-        React.createElement('input', {
-          className: 'flex-1 bg-gray-800/60 backdrop-blur text-gray-100 p-2 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-600',
-          placeholder: 'Ask something...',
-          value: input,
-          onChange: e => setInput(e.target.value),
-          onKeyPress: handleKey
-        }),
-        React.createElement('button', {
-          className: 'bg-gradient-to-r from-purple-600 to-indigo-600 px-4 rounded-r-md hover:from-pink-600 hover:to-purple-600 transition-colors',
-          onClick: sendMessage
-        }, 'Send')
-      )
-    )
+  return React.createElement(
+    'div',
+    { className: 'flex-1 flex flex-col' },
+    React.createElement(
+      'header',
+      { className: 'p-4 border-b border-gray-700 font-semibold' },
+      conversation.title
+    ),
+    React.createElement(MessageList, { messages: conversation.messages }),
+    React.createElement(MessageInput, { onSend: sendQuestion })
   );
 }
 
 function App() {
-  return (
-    React.createElement('div', { className: 'h-screen flex flex-col' },
-      React.createElement('header', { className: 'p-4 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent text-center text-2xl font-bold border-b border-gray-700' }, 'Pantheon AI Nexus'),
-      React.createElement('div', { className: 'flex flex-1 overflow-hidden' },
-        React.createElement('aside', { className: 'w-1/4 border-r border-gray-700 overflow-y-auto' }, React.createElement(MemoryPanel, null)),
-        React.createElement('main', { className: 'flex-1 overflow-hidden flex flex-col' }, React.createElement(ChatWindow, null)),
-        React.createElement('aside', { className: 'w-1/4 border-l border-gray-700 overflow-y-auto' }, React.createElement(AvatarCard, null))
-      )
-    )
+  const [conversations, setConversationsState] = useState([]);
+  const [currentId, setCurrentId] = useState(null);
+
+  useEffect(() => {
+    const convs = loadConversations();
+    setConversationsState(convs);
+    if (convs.length) setCurrentId(convs[0].id);
+  }, []);
+
+  useEffect(() => {
+    saveConversations(conversations);
+  }, [conversations]);
+
+  const createConversation = () => {
+    const newConv = { id: Date.now().toString(), title: `Chat ${conversations.length + 1}`, messages: [] };
+    setConversationsState([newConv, ...conversations]);
+    setCurrentId(newConv.id);
+  };
+
+  const selectConversation = id => setCurrentId(id);
+
+  const addMessage = (id, sender, text) => {
+    setConversationsState(conversations.map(c => c.id === id ? { ...c, messages: [...c.messages, { sender, text }] } : c));
+  };
+
+  const current = conversations.find(c => c.id === currentId);
+
+  return React.createElement(
+    'div',
+    { className: 'flex h-full' },
+    React.createElement(Sidebar, { conversations, currentId, onSelect: selectConversation, onNew: createConversation }),
+    current ? React.createElement(ChatArea, { conversation: current, onAddMessage: addMessage }) : React.createElement('div', { className: 'flex-1 flex items-center justify-center text-gray-400' }, 'No conversation selected.')
   );
 }
 
