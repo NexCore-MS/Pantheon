@@ -11,3 +11,6 @@ The interface now mirrors the core layout of ChatGPT and includes a few quality 
 * Conversations can be renamed or deleted directly from the sidebar.
 * The current chat can be cleared without removing the conversation itself.
 * Layout tweaks better match ChatGPT's familiar look and feel.
+* Toggle between light and dark themes.
+* Messages include timestamps and a copy button.
+* Conversations can be exported to JSON.
