@@ -14,3 +14,5 @@ The interface now mirrors the core layout of ChatGPT and includes a few quality 
 * Toggle between light and dark themes.
 * Messages include timestamps and a copy button.
 * Conversations can be exported to JSON.
+* New purple color scheme inspired by the show.
+* An "About Pantheon" modal provides background on the series.
